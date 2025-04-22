@@ -1,0 +1,13 @@
+@primaryColor: #B1B3B3
+
+/* Header */
+@navbarBackgroundColor: #B1B3B3;
+@navbarBackgroundImage: none; // <-- turn off gradient
+
+/* Footer */
+@footerDarkColor: #B1B3B3;
+@footerBackgroundIMage: none; 
+
+/* Front page hero cover */
+@coverPageBackgroundColor: #B1B3B3;
+@coverPageBackgroundImage: none;

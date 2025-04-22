@@ -1,0 +1,40 @@
+{%- extends "invenio_theme/frontpage.html" %}
+
+{%- block page_header %}
+{%- include "invenio_app_rdm/header_frontpage.html" %}
+{%- endblock page_header %}
+
+{%- block page_body %}
+{%- block first_section %}
+<div class="get-started-section section-content white-bg">
+<h2 class="section-title">
+    Spud-lunk through an archive of potato records.
+</h2>
+
+<div class="ui container three column stackable grid center aligned vertically padded relaxed">
+    <div class="rdm-goal column">
+        <h3 class="section-title">
+        <a href="{{ url_for('invenio_search_ui.search') }}" >Search and Explore</a>
+        </h3>
+        <div class="command-line">
+        Unearth records.
+        </div>
+    </div>
+    <div class="rdm-goal column">
+        <h3 class="section-title">
+        <a href="{{ url_for('invenio_app_rdm_records.deposit_create') }}" >Make new records</a>
+        </h3>
+        <div class="command-line">Plant your contribution.</div>
+    </div>
+    <div class="rdm-goal column">
+    <h3 class="section-title">
+        <a href="{{ url_for('invenio_communities.communities_frontpage') }}" >Join a community</a>
+    </h3>
+    <div class="command-line">
+        Grow with others.
+    </div>
+    </div>
+</div>
+</div>
+{%- endblock first_section %}
+{%- endblock page_body %}

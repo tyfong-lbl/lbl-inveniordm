@@ -1,0 +1,24 @@
+
+/* variables */
+@primaryColor: #B1B3B3;
+
+/* Header */
+@navbarBackgroundColor: #007681 !important;
+@navbarBackgroundImage: none;
+
+/* Footer */
+@footerDarkColor: #B1B3B3;
+@footerBackgroundIMage: none; 
+
+/* Front page hero cover */
+@coverPageBackgroundColor: #B1B3B3;
+@coverPageBackgroundImage: none;
+
+/* direct selector overrides */
+.outer-navbar {
+    background-color: #007681 !important;
+}
+
+.footer-top {
+  background-color: #B1B3B3; 
+}

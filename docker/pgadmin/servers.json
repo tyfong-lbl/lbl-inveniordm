@@ -1,0 +1,13 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "lbnl-data-repository-db",
+      "Group": "Servers",
+      "Host": "lbnl-data-repository-db-1",
+      "Port": 5432,
+      "MaintenanceDB": "postgres",
+      "Username": "lbnl-data-repository",
+      "SSLMode": "prefer"
+    }
+  }
+}
