@@ -1,0 +1,32 @@
+// Custom footer styles
+#rdm-footer-element {
+    margin-top: 2rem;
+
+    .footer-top {
+        background-color: #00566c;
+        color: #B1B3B3;
+        padding: 2rem 0;
+    }
+
+    .ui.medium.header {
+        color: #B1B3B3;
+        margin-bottom: 1em;
+    }
+
+    .ui.secondary.menu {
+        background: transparent;
+
+        .item {
+            color: #B1B3B3;
+            padding: 0.5em 1em 0.5em 0;
+
+            &:hover {
+                text-decoration: underline;
+            }
+        }
+    }
+
+    .right.menu {
+        color: #B1B3B3;
+    }
+}

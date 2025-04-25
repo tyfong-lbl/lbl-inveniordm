@@ -1,0 +1,18 @@
+```html
+<footer id="rdm-footer-element">
+    <div class="footer-top ui inverted vertical segment">
+        <div class="ui container">
+            <div class="ui medium header inverted">About {{ config.THEME_SITENAME }}</div>
+            <div class="ui stackable borderless secondary menu inverted">
+                <a class="item" href="{{ url_for('lbnl_pages.faq') }}">FAQ</a>
+                <a class="item" href="{{ url_for('lbnl_pages.news') }}">News</a>
+                <a class="item" href="{{ url_for('lbnl_pages.terms') }}">Terms</a>
+                <a class="item" href="mailto:{{ config.SUPPORT_EMAIL }}?subject=Report a Problem">Report a Problem</a>
+                <a class="item" href="mailto:{{ config.SUPPORT_EMAIL }}">Contact</a>
+                <div class="right menu">
+                    Powered by
+                    <a href="http://inveniosoftware.org/products/rdm" class="item">InvenioRDM</a>
+                </div>
+            </div>
+        </div>
+    </div>
