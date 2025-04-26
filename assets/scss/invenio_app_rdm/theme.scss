@@ -26,7 +26,19 @@
         }
     }
 
+    .ui.inverted.footer.segment {
+        background-color: #00313C !important;
+    }
+
+    .ui.primary.inverted.segment {
+        background: #00313C
+    }
+
     .right.menu {
         color: #B1B3B3;
     }
+}
+
+.footer-bottom.sub-footer {
+    display: none !important;
 }

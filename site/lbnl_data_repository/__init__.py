@@ -7,4 +7,6 @@ including custom static pages for FAQ, News, and Terms.
 
 from .views import create_blueprint
 
-__all__ = ('create_blueprint',)
+__version__ = '0.1.0'
+
+__all__ = ('create_blueprint','__version__')

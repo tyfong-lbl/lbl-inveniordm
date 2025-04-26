@@ -1,0 +1,18 @@
+<footer id="rdm-footer-element">
+  <div class="footer-top">
+    <div class="ui container">
+      <div class="ui medium header">About {{ config.THEME_SITENAME }}</div>
+      <div class="ui stackable borderless secondary menu">
+        <a class="item" href="{{ url_for('invenio_app_rdm.faq') }}">FAQ</a>
+        <a class="item" href="/blog-or-news-url">News</a>
+        <a class="item" href="{{ url_for('invenio_app_rdm.terms') }}">Terms</a>
+        <a class="item" href="mailto:{{ config.SUPPORT_EMAIL }}?subject=Report a Problem">Report a Problem</a>
+        <a class="item" href="mailto:{{ config.SUPPORT_EMAIL }}">Contact</a>
+        <div class="right menu">
+          Powered by
+          <a href="http://inveniosoftware.org/products/rdm">InvenioRDM</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
