@@ -1,0 +1,33 @@
+#rdm-footer-element {
+    background-color: #B1B3B3;
+    /* light gray  */
+    color: #B1B3B3;
+    padding: 20px 0;
+    margin-top: 40px;
+}
+
+#rdm-footer-element .ui.medium.header {
+    color: white;
+    margin-bottom: 1em;
+}
+
+#rdm-footer-element .ui.secondary.menu {
+    background: transparent;
+}
+
+#rdm-footer-element .ui.secondary.menu .item {
+    color: white;
+    padding: 0.5em 1em 0.5em 0;
+}
+
+#rdm-footer-element .right.menu {
+    color: white;
+}
+
+#rdm-footer-element a {
+    color: white;
+}
+
+#rdm-footer-element a:hover {
+    text-decoration: underline;
+}

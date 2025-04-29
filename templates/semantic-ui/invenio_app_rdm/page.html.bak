@@ -1,0 +1,6 @@
+{% extends 'semantic-ui/invenio_theme/page.html' %}
+
+{% block css %}
+{{ super() }}
+<link rel="stylesheet" href="/static/css/custom.css">
+{% endblock %}
