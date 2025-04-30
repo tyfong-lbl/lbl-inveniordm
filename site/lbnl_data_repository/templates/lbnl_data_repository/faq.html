@@ -1,0 +1,38 @@
+{% extends "invenio_app_rdm/page.html" %}
+
+{% set title = _("Frequently Asked Questions") %}
+
+{% block page_body %}
+<div class="ui container page-body">
+    <h1>{{ title }}</h1>
+    <p>This page provides answers to frequently asked questions about {{ config.THEME_SITENAME }}.</p>
+
+    <div class="ui container faq-content">
+        <h3><strong>What is {{ config.THEME_SITENAME }}?</strong></h3>
+        <p>{{ config.THEME_SITENAME }} is a data repository service for Berkeley Lab users. It allows researchers to
+            publish, preserve, and share their research data.</p>
+
+        <h3><strong>How do I upload data?</strong></h3>
+        <p>To upload data, you need to:</p>
+        <ol>
+            <li>Log in to your account</li>
+            <li>Click on "Upload" in the main navigation</li>
+            <li>Fill in the required metadata</li>
+            <li>Upload your files</li>
+            <li>Submit your deposit for review</li>
+        </ol>
+
+        <h3><strong>What file formats are supported?</strong></h3>
+        <p>{{ config.THEME_SITENAME }} supports all file formats. However, we recommend using open and
+            well-documented formats to ensure long-term accessibility of your data.</p>
+
+        <h3><strong>What is the maximum file size?</strong></h3>
+        <p>The maximum file size for a single file is 50GB. For larger datasets, please contact our support team at
+            <a href="mailto:{{ config.SUPPORT_EMAIL }}">{{ config.SUPPORT_EMAIL }}</a>.</p>
+
+        <h3><strong>How do I cite data from {{ config.THEME_SITENAME }}?</strong></h3>
+        <p>Each dataset in {{ config.THEME_SITENAME }} has a unique DOI that can be used for citation. The citation
+            information is provided on the record page of each dataset.</p>
+    </div>
+</div>
+{% endblock page_body %}

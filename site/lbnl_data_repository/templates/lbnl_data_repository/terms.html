@@ -1,0 +1,92 @@
+{% extends "invenio_app_rdm/page.html" %}
+
+{% set title = _("Terms of Service") %}
+
+{% block page_body %}
+<div class="ui container page-body">
+    <h1>{{ title }}</h1>
+    <p>Last Updated: June 1, 2023</p>
+
+    <div class="ui segments">
+        <div class="ui segment">
+            <h2>1. Acceptance of Terms</h2>
+            <p>By accessing or using {{ config.THEME_SITENAME }}, you agree to be bound by these Terms of Service
+                ("Terms"). These Terms apply to all visitors, users, and others who access or use the Service.</p>
+            <p>If you disagree with any part of the Terms, you may not access the Service. Your access to and use of the
+                Service is conditioned on your acceptance of and compliance with these Terms.</p>
+        </div>
+
+        <div class="ui segment">
+            <h2>2. Description of Service</h2>
+            <p>{{ config.THEME_SITENAME }} is a research data repository that allows users to upload, publish, and share
+                research data. The Service is provided by Lawrence Berkeley National Laboratory ("LBNL") for the purpose
+                of supporting scientific research and collaboration.</p>
+        </div>
+
+        <div class="ui segment">
+            <h2>3. Account Registration</h2>
+            <p>To use certain features of the Service, you may be required to register for an account. You agree to
+                provide accurate, current, and complete information during the registration process and to update such
+                information to keep it accurate, current, and complete.</p>
+            <p>You are responsible for safeguarding the password that you use to access the Service and for any
+                activities or actions under your password. You agree not to disclose your password to any third party.
+            </p>
+        </div>
+
+        <div class="ui segment">
+            <h2>4. User Responsibilities</h2>
+            <p>Users are responsible for:</p>
+            <ul>
+                <li>Ensuring they have the right to share and publish the data they upload</li>
+                <li>Providing accurate metadata describing their data</li>
+                <li>Using appropriate licenses for their content</li>
+                <li>Respecting the intellectual property rights of others</li>
+                <li>Complying with applicable laws and regulations</li>
+            </ul>
+        </div>
+
+        <div class="ui segment">
+            <h2>5. Content and Licenses</h2>
+            <p>Users retain ownership of the content they upload to the Service. By uploading content, users grant LBNL
+                a non-exclusive license to store, reproduce, and display the content for the purpose of providing the
+                Service.</p>
+            <p>When publishing data, users must select an appropriate license that specifies how others may use their
+                data. LBNL does not claim ownership of content published through the Service.</p>
+        </div>
+
+        <div class="ui segment">
+            <h2>6. Privacy</h2>
+            <p>Our Privacy Policy, available at [Privacy Policy URL], describes how we handle the information you
+                provide to us when you use our Service. By using the Service, you agree to the collection and use of
+                information in accordance with this Privacy Policy.</p>
+        </div>
+
+        <div class="ui segment">
+            <h2>7. Limitation of Liability</h2>
+            <p>In no event shall LBNL, nor its directors, employees, partners, agents, suppliers, or affiliates, be
+                liable for any indirect, incidental, special, consequential or punitive damages, including without
+                limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from:</p>
+            <ul>
+                <li>Your access to or use of or inability to access or use the Service;</li>
+                <li>Any conduct or content of any third party on the Service;</li>
+                <li>Any content obtained from the Service; and</li>
+                <li>Unauthorized access, use, or alteration of your transmissions or content.</li>
+            </ul>
+        </div>
+
+        <div class="ui segment">
+            <h2>8. Changes to Terms</h2>
+            <p>We reserve the right, at our sole discretion, to modify or replace these Terms at any time. If a revision
+                is material, we will try to provide at least 30 days' notice prior to any new terms taking effect.</p>
+            <p>By continuing to access or use our Service after those revisions become effective, you agree to be bound
+                by the revised terms. If you do not agree to the new terms, please stop using the Service.</p>
+        </div>
+
+        <div class="ui segment">
+            <h2>9. Contact Us</h2>
+            <p>If you have any questions about these Terms, please contact us at <a
+                    href="mailto:{{ config.SUPPORT_EMAIL }}">{{ config.SUPPORT_EMAIL }}</a>.</p>
+        </div>
+    </div>
+</div>
+{% endblock page_body %}

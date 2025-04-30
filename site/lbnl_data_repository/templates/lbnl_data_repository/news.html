@@ -1,0 +1,83 @@
+{% extends "invenio_app_rdm/page.html" %}
+
+{% set title = _("News and Announcements") %}
+
+{% block page_body %}
+<div class="ui container page-body">
+    <h1>{{ title }}</h1>
+    <p>Stay up to date with the latest news and announcements from {{ config.THEME_SITENAME }}.</p>
+
+    <div class="ui divided items">
+        <div class="item">
+            <div class="content">
+                <a class="header">New Data Repository Service Launches</a>
+                <div class="meta">
+                    <span class="date">June 15, 2023</span>
+                </div>
+                <div class="description">
+                    <p>We are pleased to announce the launch of {{ config.THEME_SITENAME }}, a new data repository
+                        service for Berkeley Lab users. This platform enables researchers to publish, preserve, and
+                        share their research data with colleagues and the scientific community.</p>
+                    <p>Key features include:</p>
+                    <ul>
+                        <li>DOI assignment for all published datasets</li>
+                        <li>Comprehensive metadata support</li>
+                        <li>Integration with lab computing environments</li>
+                        <li>Long-term preservation of research outputs</li>
+                    </ul>
+                </div>
+                <div class="extra">
+                    <div class="ui label">Launch</div>
+                    <div class="ui label">New Service</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="item">
+            <div class="content">
+                <a class="header">Data Management Workshop Series</a>
+                <div class="meta">
+                    <span class="date">May 1, 2023</span>
+                </div>
+                <div class="description">
+                    <p>The {{ config.THEME_SITENAME }} team will be hosting a series of workshops on research data
+                        management best practices. Sessions will cover topics such as:</p>
+                    <ul>
+                        <li>Organizing research data effectively</li>
+                        <li>Creating data management plans</li>
+                        <li>Using {{ config.THEME_SITENAME }} for data publication</li>
+                        <li>Data citation and impact tracking</li>
+                    </ul>
+                    <p>Workshop dates and registration information will be announced soon.</p>
+                </div>
+                <div class="extra">
+                    <div class="ui label">Training</div>
+                    <div class="ui label">Workshops</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="item">
+            <div class="content">
+                <a class="header">System Maintenance Scheduled</a>
+                <div class="meta">
+                    <span class="date">April 10, 2023</span>
+                </div>
+                <div class="description">
+                    <p>{{ config.THEME_SITENAME }} will be undergoing scheduled maintenance on April 20, 2023 from 9:00
+                        PM to 11:00 PM PT. During this time, the system will be unavailable for uploads and downloads.
+                    </p>
+                    <p>This maintenance window will allow us to implement performance improvements and new features to
+                        enhance your experience.</p>
+                    <p>If you have any questions or concerns, please contact us at <a
+                            href="mailto:{{ config.SUPPORT_EMAIL }}">{{ config.SUPPORT_EMAIL }}</a>.</p>
+                </div>
+                <div class="extra">
+                    <div class="ui label">Maintenance</div>
+                    <div class="ui label">Downtime</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock page_body %}

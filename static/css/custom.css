@@ -1,9 +1,22 @@
+/* Reset styling to prevent white bar */
+html, body {
+    margin: 0;
+    padding: 0;
+    background-color: #00313C;
+}
+
+/* Ensure content goes all the way to the footer */
+.page-body {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+
 #rdm-footer-element {
-    background-color: #B1B3B3;
-    /* light gray  */
+    background-color: #00313C;
     color: #B1B3B3;
     padding: 20px 0;
-    margin-top: 40px;
+    margin-top: 0;
+    width: 100%;
 }
 
 #rdm-footer-element .ui.medium.header {

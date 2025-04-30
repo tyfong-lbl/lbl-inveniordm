@@ -1,0 +1,7 @@
+include *.rst
+include *.md
+include *.py
+include LICENSE
+recursive-include lbnl_data_repository *.py
+recursive-include lbnl_data_repository/templates *.html
+recursive-include lbnl_data_repository/static *
