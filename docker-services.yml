@@ -31,8 +31,10 @@ services:
     image: redis:7
     restart: "unless-stopped"
     read_only: true
-    ports:
-      - "6379:6379"
+    networks: 
+      - internal-net
+    #ports:
+    #  - "6379:6379"
   db:
     image: postgres:14.13
     restart: "unless-stopped"
@@ -40,13 +42,17 @@ services:
       - "POSTGRES_USER=lbnl-data-repository"
       - "POSTGRES_PASSWORD=lbnl-data-repository"
       - "POSTGRES_DB=lbnl-data-repository"
-    ports:
-      - "5432:5432"
+    networks: 
+      - internal-net
+    #ports:
+    #  - "127.0.0.1:5432:5432"
   pgadmin:
     image: dpage/pgadmin4:6
     restart: "unless-stopped"
-    ports:
-      - "5050:80"
+    networks: 
+      - internal-net
+    #ports:
+    #  - "5050:80"
     environment:
       PGADMIN_DEFAULT_EMAIL: "tyfong@lbl.gov"
       PGADMIN_DEFAULT_PASSWORD: "lbnl-data-repository"
@@ -55,12 +61,16 @@ services:
   mq:
     image: rabbitmq:3-management
     restart: "unless-stopped"
-    ports:
-      - "15672:15672"
-      - "5672:5672"
+    networks: 
+      - internal-net
+    #ports:
+    #  - "15672:15672"
+    #  - "5672:5672"
   search:
     image: opensearchproject/opensearch:2.17.1
     restart: "unless-stopped"
+    networks: 
+      - internal-net
     environment:
       # settings only for development. DO NOT use in production!
       - bootstrap.memory_lock=true
@@ -76,16 +86,20 @@ services:
         soft: 65536
         hard: 65536
     mem_limit: 2g
-    ports:
-      - "9200:9200"
-      - "9600:9600"
+    #ports:
+    #  - "9200:9200"
+    #  - "9600:9600"
   opensearch-dashboards:
     image: opensearchproject/opensearch-dashboards:2.17.1
-    ports:
-      - "5601:5601"
-    expose:
-      - "5601"
+    #ports:
+    #  - "5601:5601"
+    #expose:
+    #  - "5601"
     environment:
       # settings only for development. DO NOT use in production!
       - 'OPENSEARCH_HOSTS=["http://search:9200"]'
       - "DISABLE_SECURITY_DASHBOARDS_PLUGIN=true"
+
+networks: 
+  internal-net:
+    driver: bridge

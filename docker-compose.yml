@@ -15,28 +15,42 @@
 # - Kibana (view ES indexes) (exposed ports: 5601)
 #
 version: '2.2'
+networks:
+  internal-net:
 services:
   cache:
     extends:
       file: docker-services.yml
       service: cache
+    networks:
+      - internal-net
   db:
     extends:
       file: docker-services.yml
       service: db
+    networks:
+      - internal-net
   mq:
     extends:
       file: docker-services.yml
       service: mq
+    networks:
+      - internal-net
   search:
     extends:
       file: docker-services.yml
       service: search
+    networks:
+      - internal-net
   opensearch-dashboards:
     extends:
       file: docker-services.yml
       service: opensearch-dashboards
+    networks:
+      - internal-net
   pgadmin:
     extends:
       file: docker-services.yml
       service: pgadmin
+    networks:
+      - internal-net
