@@ -21,16 +21,12 @@ services:
       - "INVENIO_WSGI_PROXIES=2"
       - "INVENIO_RATELIMIT_STORAGE_URL=redis://cache:6379/3"
   frontend:
-    build: 
-      context: ./docker/nginx/
-      dockerfile: Dockerfile
+    build: ./docker/nginx/
     image: lbnl-data-repository-frontend
     restart: "unless-stopped"
-    volumes:
-      - ${HOME}/.config/lbnl-data-repository/ssl/server.pem:/etc/ssl/certs/server.pem:ro
-      - ${HOME}/.config/lbnl-data-repository/ssl/server-key.pem:/etc/ssl/private/server-key.pem:ro
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    ports:
+      - "80"
+      - "443"
   cache:
     image: redis:7
     restart: "unless-stopped"
@@ -73,31 +69,28 @@ services:
   search:
     image: opensearchproject/opensearch:2.17.1
     restart: "unless-stopped"
+    networks: 
+      - internal-net
     environment:
       # Security settings
       - "DISABLE_SECURITY_PLUGIN=false"
-      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m -Dopensearch.allow_unsafe_democertificates=true -Dopensearch.allow_default_init_securityindex=true"
       - "plugins.security.ssl.http.enabled=true"
       - "plugins.security.ssl.transport.enabled=true"
-      - "plugins.security.ssl.http.pemcert_filepath=config/certificates/server.pem"
-      - "plugins.security.ssl.http.pemkey_filepath=config/certificates/server-key.pem"
-      - "plugins.security.ssl.http.pemtrustedcas_filepath=config/certificates/ca.pem"
-      - "plugins.security.ssl.transport.pemcert_filepath=config/certificates/server.pem"
-      - "plugins.security.ssl.transport.pemkey_filepath=config/certificates/server-key.pem"
-      - "plugins.security.ssl.transport.pemtrustedcas_filepath=config/certificates/ca.pem"
+      - "plugins.security.ssl.http.pemcert_filepath=config/certificates/node.pem"
+      - "plugins.security.ssl.http.pemkey_filepath=config/certificates/node-key.pem"
+      - "plugins.security.ssl.transport.pemcert_filepath=config/certificates/node.pem"
+      - "plugins.security.ssl.transport.pemkey_filepath=config/certificates/node-key.pem"
       - "plugins.security.allow_default_init_securityindex=true"
-      - "plugins.security.authcz.admin_dn=[\"CN=admin,OU=Development,O=LBNL,L=Berkeley,ST=California,C=US\"]"
-      - "plugins.security.nodes_dn=[\"CN=localhost,OU=Development,O=LBNL,L=Berkeley,ST=California,C=US\"]"
+      - "plugins.security.authcz.admin_dn=[\"CN=admin,OU=LBL,O=LBNL,L=Berkeley,ST=California,C=US\"]"
+      - "plugins.security.nodes_dn=[\"CN=node-1,OU=LBL,O=LBNL,L=Berkeley,ST=California,C=US\"]"
       - "plugins.security.audit.type=internal_opensearch"
-      - "plugins.security.enable_snapshot_restore_privilege=true"
-      - "plugins.security.check_snapshot_restore_write_privileges=true"
-      - "plugins.security.restapi.roles_enabled=[\"all_access\", \"security_rest_api_access\"]"
-      # Other settings
+      # Other existing environment variables
       - "bootstrap.memory_lock=true"
       - "discovery.type=single-node"
-      - "OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_ADMIN_PASSWORD}"
     volumes:
-      - ${HOME}/.config/lbnl-data-repository/ssl:/usr/share/opensearch/config/certificates:ro
+      - ./docker/opensearch/certificates:/usr/share/opensearch/config/certificates
+    
     ulimits:
       memlock:
         soft: -1
@@ -106,22 +99,27 @@ services:
         soft: 65536
         hard: 65536
     mem_limit: 2g
+    #ports:
+    #  - "9200:9200"
+    #  - "9600:9600"
   opensearch-dashboards:
     restart: "unless-stopped"
     image: opensearchproject/opensearch-dashboards:2.17.1
+    #ports:
+    #  - "5601:5601"
+    #expose:
+    #  - "5601"
     environment:
       - "DISABLE_SECURITY_DASHBOARDS_PLUGIN=false"
       - "OPENSEARCH_HOSTS=https://search:9200"
-      - "OPENSEARCH_SSL_VERIFICATIONMODE=certificate"
-      - "OPENSEARCH_SSL_CERTIFICATEAUTHORITIES=/usr/share/opensearch-dashboards/config/certificates/ca.pem"
-      - "OPENSEARCH_USERNAME=${OPENSEARCH_ADMIN_USER:-admin}"
+      - "OPENSEARCH_SSL_VERIFICATIONMODE=none"
+      - "OPENSEARCH_USERNAME=${OPENSEARCH_ADMIN_USER}"
       - "OPENSEARCH_PASSWORD=${OPENSEARCH_ADMIN_PASSWORD}"
-      - "SERVER_SSL_ENABLED=true"
-      - "SERVER_SSL_CERTIFICATE=/usr/share/opensearch-dashboards/config/certificates/server.pem"
-      - "SERVER_SSL_KEY=/usr/share/opensearch-dashboards/config/certificates/server-key.pem"
     volumes:
-      - ${HOME}/.config/lbnl-data-repository/ssl:/usr/share/opensearch-dashboards/config/certificates:ro
+      - ./docker/opensearch-dashboards/config/opensearch_dashboards.yml:/usr/share/opensearch-dashboards/config/opensearch_dashboards.yml
+    networks:
+      - internal-net
+
 networks: 
   internal-net:
     driver: bridge
-

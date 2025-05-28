@@ -76,7 +76,6 @@ instance/
 docs/_build/
 
 # PyBuilder
-<<<<<<< HEAD
 target/
 
 test.db
@@ -96,9 +95,7 @@ data/.minio.sys
 
 # Celery
 celerybeat-schedule
-=======
-.pybuilder/
-target/
+celerybeat.pid
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -145,10 +142,6 @@ ipython_config.py
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
 __pypackages__/
 
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
-
 # SageMath parsed files
 *.sage.py
 
@@ -167,7 +160,6 @@ venv.bak/
 
 # Rope project settings
 .ropeproject
-
 
 # mypy
 .mypy_cache/
@@ -198,3 +190,19 @@ cython_debug/
 
 planningfiles/
 .DS_Store
+chats/
+# omni-engineer-lbl
+.aiconsole_history.txt
+
+# SSL certificates and private keys - never commit these
+*.pem
+*.key
+*.csr
+*.crt
+*.p12
+*.pfx
+*.jks
+*.ext
+*.srl
+docker/ssl/
+ssl/

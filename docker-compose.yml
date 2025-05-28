@@ -1,56 +1,97 @@
 # Backend services needed for development.
 #
 # This file will start all the backend services needed to run InvenioRDM
-# locally in development mode.
+# locally in development mode with HTTPS and localhost-only access.
 #
 # Usage::
 #
 #   $ docker-compose up -d
 #
 # Following services are included:
-# - Cache: Redis (exposed port: 6379)
-# - DB: (PostgresSQL/MySQL) (exposed port: 5432 or 3306)
-# - Message queue: RabbitMQ (exposed ports: 5672, 15672)
-# - OpenSearch (exposed ports: 9200, 9600)
-# - Kibana (view ES indexes) (exposed ports: 5601)
+# - Cache: Redis (exposed port: 127.0.0.1:6379)
+# - DB: PostgreSQL (exposed port: 127.0.0.1:5432)
+# - Message queue: RabbitMQ (exposed ports: 127.0.0.1:5672, 127.0.0.1:15672)
+# - OpenSearch (exposed ports: 127.0.0.1:9200, 127.0.0.1:9600)
+# - OpenSearch Dashboards (exposed port: 127.0.0.1:5601)
+# - PgAdmin (exposed port: 127.0.0.1:5050)
+# - Frontend (HTTPS): 127.0.0.1:5000
 #
 version: '2.2'
+
 networks:
   internal-net:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: "invenio-dev"
+
 services:
   cache:
     extends:
       file: docker-services.yml
       service: cache
+    ports:
+      - "127.0.0.1:6379:6379"
     networks:
       - internal-net
+
   db:
     extends:
       file: docker-services.yml
       service: db
+    ports:
+      - "127.0.0.1:5432:5432"
     networks:
       - internal-net
+
   mq:
     extends:
       file: docker-services.yml
       service: mq
+    ports:
+      - "127.0.0.1:15672:15672"
+      - "127.0.0.1:5672:5672"
     networks:
       - internal-net
+
   search:
     extends:
       file: docker-services.yml
       service: search
+    ports:
+      - "127.0.0.1:9200:9200"
+      - "127.0.0.1:9600:9600"
     networks:
       - internal-net
+
   opensearch-dashboards:
     extends:
       file: docker-services.yml
       service: opensearch-dashboards
+    ports:
+      - "127.0.0.1:5601:5601"
     networks:
       - internal-net
+
   pgadmin:
     extends:
       file: docker-services.yml
       service: pgadmin
+    ports:
+      - "127.0.0.1:5050:80"
     networks:
       - internal-net
+
+  frontend:
+    extends:
+      file: docker-services.yml
+      service: frontend
+    ports:
+      - "127.0.0.1:5000:443"
+    networks:
+      - internal-net
+    depends_on:
+      - search
+      - cache
+      - db
+      - mq
+
