@@ -14,8 +14,7 @@
 # - OpenSearch (exposed ports: 127.0.0.1:9200, 127.0.0.1:9600)
 # - OpenSearch Dashboards (exposed port: 127.0.0.1:5601)
 # - PgAdmin (exposed port: 127.0.0.1:5050)
-# - Frontend (HTTPS): 127.0.0.1:5000
-#
+# - Frontend (HTTPS): 127.0.0.1:443 (HTTP) 127.0.0.1:443#
 version: '2.2'
 
 networks:
@@ -86,7 +85,8 @@ services:
       file: docker-services.yml
       service: frontend
     ports:
-      - "127.0.0.1:5000:443"
+      - "127.0.0.1:5000:80"
+      - "127.0.0.1:5001:443"
     networks:
       - internal-net
     depends_on:
