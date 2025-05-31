@@ -79,12 +79,12 @@ services:
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
       - "plugins.security.ssl.http.enabled=true"
       - "plugins.security.ssl.transport.enabled=true"
-      - "plugins.security.ssl.http.pemcert_filepath=config/certificates/server.pem"
-      - "plugins.security.ssl.http.pemkey_filepath=config/certificates/server-key.pem"
-      - "plugins.security.ssl.http.pemtrustedcas_filepath=config/certificates/ca.pem"
-      - "plugins.security.ssl.transport.pemcert_filepath=config/certificates/server.pem"
-      - "plugins.security.ssl.transport.pemkey_filepath=config/certificates/server-key.pem"
-      - "plugins.security.ssl.transport.pemtrustedcas_filepath=config/certificates/ca.pem"
+      - "plugins.security.ssl.http.pemcert_filepath=/usr/share/opensearch/config/certificates/server.pem"
+      - "plugins.security.ssl.http.pemkey_filepath=/usr/share/opensearch/config/certificates/server-key.pem"
+      - "plugins.security.ssl.http.pemtrustedcas_filepath=/usr/share/opensearch/config/certificates/ca.pem"
+      - "plugins.security.ssl.transport.pemcert_filepath=/usr/share/opensearch/config/certificates/server.pem"
+      - "plugins.security.ssl.transport.pemkey_filepath=/usr/share/opensearch/config/certificates/server-key.pem"
+      - "plugins.security.ssl.transport.pemtrustedcas_filepath=/usr/share/opensearch/config/certificates/ca.pem"
       - "plugins.security.allow_default_init_securityindex=true"
       - "plugins.security.authcz.admin_dn=[\"CN=admin,OU=Development,O=LBNL,L=Berkeley,ST=California,C=US\"]"
       - "plugins.security.nodes_dn=[\"CN=localhost,OU=Development,O=LBNL,L=Berkeley,ST=California,C=US\"]"
@@ -124,4 +124,5 @@ services:
 networks: 
   internal-net:
     driver: bridge
+
 
