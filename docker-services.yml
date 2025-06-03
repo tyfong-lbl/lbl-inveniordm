@@ -8,18 +8,18 @@ services:
     image: lbnl-data-repository
     restart: "unless-stopped"
     environment:
-      - "INVENIO_ACCOUNTS_SESSION_REDIS_URL=redis://cache:6379/1"
-      - "INVENIO_BROKER_URL=amqp://guest:guest@mq:5672/"
-      - "INVENIO_CACHE_REDIS_URL=redis://cache:6379/0"
+      - "INVENIO_ACCOUNTS_SESSION_REDIS_URL=redis://cache:${REDIS_PORT:-6379}/1"
+      - "INVENIO_BROKER_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@mq:${RABBITMQ_PORT:-5672}/"
+      - "INVENIO_CACHE_REDIS_URL=redis://cache:${REDIS_PORT:-6379}/0"
       - "INVENIO_CACHE_TYPE=redis"
-      - "INVENIO_CELERY_BROKER_URL=amqp://guest:guest@mq:5672/"
-      - "INVENIO_CELERY_RESULT_BACKEND=redis://cache:6379/2"
-      - "INVENIO_COMMUNITIES_IDENTITIES_CACHE_REDIS_URL=redis://cache:6379/4"
+      - "INVENIO_CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@mq:${RABBITMQ_PORT:-5672}/"
+      - "INVENIO_CELERY_RESULT_BACKEND=redis://cache:${REDIS_PORT:-6379}/2"
+      - "INVENIO_COMMUNITIES_IDENTITIES_CACHE_REDIS_URL=redis://cache:${REDIS_PORT:-6379}/4"
       - "INVENIO_SEARCH_HOSTS=['search:9200']"
       - "INVENIO_SECRET_KEY=CHANGE_ME"
-      - "INVENIO_SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://lbnl-data-repository:lbnl-data-repository@db/lbnl-data-repository"
+      - "INVENIO_SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://${POSTGRES_USER:-lbnl-data-repository}:${POSTGRES_PASSWORD:-lbnl-data-repository}@db/${POSTGRES_DB:-lbnl-data-repository}"
       - "INVENIO_WSGI_PROXIES=2"
-      - "INVENIO_RATELIMIT_STORAGE_URL=redis://cache:6379/3"
+      - "INVENIO_RATELIMIT_STORAGE_URL=redis://cache:${REDIS_PORT:-6379}/3"
   frontend:
     build: 
       context: ./docker/nginx/
@@ -43,9 +43,9 @@ services:
     image: postgres:14.13
     restart: "unless-stopped"
     environment:
-      - "POSTGRES_USER=lbnl-data-repository"
-      - "POSTGRES_PASSWORD=lbnl-data-repository"
-      - "POSTGRES_DB=lbnl-data-repository"
+      - "POSTGRES_USER=${POSTGRES_USER:-lbnl-data-repository}"
+      - "POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-lbnl-data-repository}"
+      - "POSTGRES_DB=${POSTGRES_DB:-lbnl-data-repository}"
     networks: 
       - internal-net
     #ports:
@@ -124,5 +124,7 @@ services:
 networks: 
   internal-net:
     driver: bridge
+
+
 
 
