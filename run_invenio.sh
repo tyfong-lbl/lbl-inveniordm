@@ -1,10 +1,19 @@
 #!/bin/bash
 
+# Store original arguments for restart functionality
+ORIGINAL_ARGS=("$@")
+
+FILES_LOCATION="${INVENIO_FILES_LOCATION:-./instance/files/}"
+
 # Default values
 DEBUG_MODE=false
 START_INVENIO=false
 INVENIO_PORT=5002
 RESET_MODE=false
+STOP_MODE=false
+STOP_ALL_MODE=false
+RESTART_MODE=false
+STATUS_MODE=false
 
 # Function to perform reset and initialization
 perform_reset_and_init() {
@@ -114,6 +123,19 @@ initialize_invenio() {
     echo "🔧 Initializing InvenioRDM database and search indices..."
     echo ""
     
+    # Check and create the files location directory if it doesn't exist
+    if [ ! -d "$FILES_LOCATION" ]; then
+        echo "Creating files location directory: $FILES_LOCATION"
+        mkdir -p "$FILES_LOCATION"
+    fi
+    
+    # Set proper permissions for the files location directory
+    echo "Setting permissions for files location directory: $FILES_LOCATION"
+    chmod 755 "$FILES_LOCATION"
+    
+    # Show message about where files will be stored
+    echo "Files will be stored in: $FILES_LOCATION"
+    
     local success_count=0
     local total_count=0
     local failed_commands=()
@@ -123,7 +145,7 @@ initialize_invenio() {
         "invenio db init"
         "invenio db create"
         "invenio index init"
-        "invenio files location create --default 'default-location' /tmp/data"
+        "invenio files location create --default 'default-location' '$FILES_LOCATION'"
         "invenio roles create admin"
     )
     
@@ -165,6 +187,427 @@ initialize_invenio() {
     return 0
 }
 
+# ============================================================================
+# Process Management Utilities
+# ============================================================================
+
+# Function to get InvenioRDM PID if running
+get_invenio_pid() {
+    local pid_file="invenio.pid"
+    
+    # Check if PID file exists
+    if [ ! -f "$pid_file" ]; then
+        echo ""
+        return 1
+    fi
+    
+    # Read PID from file
+    local pid=$(cat "$pid_file" 2>/dev/null)
+    
+    # Validate PID is not empty
+    if [ -z "$pid" ]; then
+        echo ""
+        return 1
+    fi
+    
+    # Check if process is still running
+    if kill -0 "$pid" 2>/dev/null; then
+        echo "$pid"
+        return 0
+    else
+        # Process not running, clean up stale PID file
+        rm -f "$pid_file"
+        echo ""
+        return 1
+    fi
+}
+
+# Function to check if InvenioRDM is running
+is_invenio_running() {
+    local pid=$(get_invenio_pid)
+    if [ -n "$pid" ]; then
+        return 0  # true - running
+    else
+        return 1  # false - not running
+    fi
+}
+
+# Function to cleanup InvenioRDM files
+cleanup_invenio_files() {
+    local clean_logs=false
+    
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --clean-logs)
+                clean_logs=true
+                shift
+                ;;
+            *)
+                echo "Unknown option: $1"
+                return 1
+                ;;
+        esac
+    done
+    
+    echo "🧹 Cleaning up InvenioRDM files..."
+    
+    # Remove PID file if it exists
+    if [ -f "invenio.pid" ]; then
+        echo "   • Removing invenio.pid"
+        rm -f "invenio.pid"
+    fi
+    
+    # Handle log file cleanup
+    if [ "$clean_logs" = true ] && [ -f "invenio.log" ]; then
+        # Create backup of logs before removal
+        local timestamp=$(date +"%Y%m%d_%H%M%S")
+        local backup_file="invenio.log.backup_${timestamp}"
+        
+        echo "   • Creating log backup: $backup_file"
+        cp "invenio.log" "$backup_file"
+        
+        echo "   • Removing invenio.log"
+        rm -f "invenio.log"
+    fi
+    
+    echo "✅ Cleanup completed"
+}
+
+# Function to stop InvenioRDM process gracefully
+stop_invenio_process() {
+    local clean_logs=false
+    
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --clean-logs)
+                clean_logs=true
+                shift
+                ;;
+            *)
+                echo "❌ Unknown option: $1"
+                return 1
+                ;;
+        esac
+    done
+    
+    echo "🛑 Stopping InvenioRDM process..."
+    
+    # Check if InvenioRDM is running
+    if ! is_invenio_running; then
+        echo "ℹ️  InvenioRDM is not currently running"
+        return 0
+    fi
+    
+    local pid=$(get_invenio_pid)
+    if [ -z "$pid" ]; then
+        echo "❌ Could not determine InvenioRDM process ID"
+        return 1
+    fi
+    
+    echo "   • Found InvenioRDM process (PID: $pid)"
+    
+    # Check if PID file exists but process is already dead
+    if ! kill -0 "$pid" 2>/dev/null; then
+        echo "⚠️  Process $pid is not running (stale PID file)"
+        cleanup_invenio_files
+        echo "✅ Cleaned up stale PID file"
+        return 0
+    fi
+    
+    # Attempt graceful shutdown with SIGTERM
+    echo "   • Sending SIGTERM signal for graceful shutdown..."
+    if ! kill -TERM "$pid" 2>/dev/null; then
+        echo "❌ Failed to send SIGTERM signal (permission denied or process not found)"
+        return 1
+    fi
+    
+    # Wait up to 30 seconds for graceful shutdown
+    local wait_time=0
+    local max_wait=30
+    echo "   • Waiting for graceful shutdown (up to ${max_wait}s)..."
+    
+    while [ $wait_time -lt $max_wait ]; do
+        if ! kill -0 "$pid" 2>/dev/null; then
+            echo "✅ Process stopped gracefully after ${wait_time}s"
+            cleanup_invenio_files
+            if [ "$clean_logs" = true ]; then
+                cleanup_invenio_files --clean-logs
+            fi
+            echo "✅ InvenioRDM stopped successfully"
+            return 0
+        fi
+        
+        sleep 1
+        wait_time=$((wait_time + 1))
+        
+        # Show progress every 5 seconds
+        if [ $((wait_time % 5)) -eq 0 ]; then
+            echo "   • Still waiting... (${wait_time}/${max_wait}s)"
+        fi
+    done
+    
+    # If graceful shutdown failed, use SIGKILL
+    echo "⚠️  Graceful shutdown timed out, forcing termination..."
+    
+    if ! kill -0 "$pid" 2>/dev/null; then
+        echo "✅ Process stopped during timeout period"
+        cleanup_invenio_files
+        if [ "$clean_logs" = true ]; then
+            cleanup_invenio_files --clean-logs
+        fi
+        echo "✅ InvenioRDM stopped successfully"
+        return 0
+    fi
+    
+    echo "   • Sending SIGKILL signal..."
+    if ! kill -KILL "$pid" 2>/dev/null; then
+        echo "❌ Failed to send SIGKILL signal (permission denied or process not found)"
+        return 1
+    fi
+    
+    # Wait a moment for SIGKILL to take effect
+    sleep 2
+    
+    if kill -0 "$pid" 2>/dev/null; then
+        echo "❌ Process $pid could not be terminated"
+        return 1
+    fi
+    
+    echo "✅ Process forcefully terminated"
+    cleanup_invenio_files
+    if [ "$clean_logs" = true ]; then
+        cleanup_invenio_files --clean-logs
+    fi
+    echo "✅ InvenioRDM stopped successfully"
+    return 0
+}
+# Function to stop all services while preserving data
+stop_all_services() {
+    echo "🛑 Stopping All InvenioRDM Services"
+    echo "===================================="
+    echo "ℹ️  This will stop all services while preserving data volumes"
+    echo ""
+    
+    # Step 1: Stop InvenioRDM process first
+    echo "🔄 Step 1: Stopping InvenioRDM process..."
+    if stop_invenio_process; then
+        echo "✅ InvenioRDM process stopped successfully"
+    else
+        echo "⚠️  InvenioRDM process may not have been running or failed to stop cleanly"
+    fi
+    echo ""
+    
+    # Step 2: Stop Docker containers
+    echo "🔄 Step 2: Stopping Docker containers..."
+    
+    # Load environment variables
+    if [ -f ~/.config/lbnl-data-repository/.env ]; then
+        echo "📋 Loading environment configuration..."
+        
+        # Stop containers using docker-compose down (without -v to preserve volumes)
+        if env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) docker-compose -f docker-compose.yml down --remove-orphans; then
+            echo "✅ Docker containers stopped successfully"
+        else
+            echo "❌ Failed to stop Docker containers"
+            return 1
+        fi
+    else
+        echo "⚠️  Environment file not found at ~/.config/lbnl-data-repository/.env"
+        echo "🔄 Attempting to stop containers without environment..."
+        
+        if docker-compose -f docker-compose.yml down --remove-orphans 2>/dev/null; then
+            echo "✅ Docker containers stopped successfully"
+        else
+            echo "❌ Failed to stop Docker containers"
+            return 1
+        fi
+    fi
+    echo ""
+    
+    # Step 3: Verify all containers are stopped
+    echo "🔄 Step 3: Verifying container shutdown..."
+    sleep 2  # Give containers time to fully stop
+    
+    local running_containers=$(docker ps -q --filter "label=com.docker.compose.project" 2>/dev/null | wc -l | tr -d ' ')
+    if [ "$running_containers" -eq 0 ]; then
+        echo "✅ All containers confirmed stopped"
+    else
+        echo "⚠️  Warning: $running_containers container(s) may still be running"
+        echo "   Running containers:"
+        docker ps --format "table {{.Names}}\t{{.Status}}" --filter "label=com.docker.compose.project" 2>/dev/null | sed 's/^/   /'
+    fi
+    echo ""
+    
+    # Step 4: Show preserved data/volumes
+    echo "💾 Data Preservation Status"
+    echo "=========================="
+    echo "✅ The following data has been preserved:"
+    echo ""
+    
+    # List Docker volumes
+    local volumes=$(docker volume ls -q --filter "label=com.docker.compose.project" 2>/dev/null)
+    if [ -n "$volumes" ]; then
+        echo "🗄️  Docker Volumes:"
+        echo "$volumes" | while read -r volume; do
+            if [ -n "$volume" ]; then
+                local size=$(docker system df -v 2>/dev/null | grep "$volume" | awk '{print $3}' || echo "Unknown")
+                echo "   📦 $volume (Size: $size)"
+            fi
+        done
+    else
+        echo "🗄️  Docker Volumes: None found or unable to list"
+    fi
+    echo ""
+    
+    # Show other preserved data locations
+    echo "📁 Other Preserved Data:"
+    local data_locations=(
+        "app_data/"
+        "static/"
+        "templates/"
+        "assets/"
+        "site/"
+        "invenio.cfg"
+        ".invenio"
+    )
+    
+    for location in "${data_locations[@]}"; do
+        if [ -e "$location" ]; then
+            if [ -d "$location" ]; then
+                local file_count=$(find "$location" -type f 2>/dev/null | wc -l | tr -d ' ')
+                echo "   📂 $location ($file_count files)"
+            else
+                echo "   📄 $location"
+            fi
+        fi
+    done
+    echo ""
+    
+    # Final status
+    echo "🎯 Shutdown Summary"
+    echo "=================="
+    echo "✅ InvenioRDM process: Stopped"
+    echo "✅ Docker containers: Stopped"
+    echo "✅ Data volumes: Preserved"
+    echo "✅ Configuration files: Preserved"
+    echo "✅ Application data: Preserved"
+    echo ""
+    echo "💡 To restart services, run: $0 --start"
+    echo "💡 To view status, run: $0 --status"
+    
+    return 0
+}
+
+# Function to restart services
+restart_services() {
+    echo "🔄 Restarting InvenioRDM services..."
+
+    # Filter out --restart from the arguments and add restart marker
+    local args=()
+    for arg in "${ORIGINAL_ARGS[@]}"; do
+        if [[ "$arg" != "--restart" ]]; then
+            args+=("$arg")
+        fi
+    done
+    
+    # Add internal restart marker to track this is a restart operation
+    args+=("--internal-restart-marker")
+
+    # Stop all services
+    stop_all_services
+
+    # Wait for clean shutdown
+    echo "🕒 Waiting for services to shut down completely..."
+    sleep 5
+
+    # Reconstruct the startup command with preserved arguments
+    local startup_command="./run_invenio.sh ${args[*]}"
+    echo "🛠️  Reconstructing startup command: $startup_command"
+
+    # Execute the startup command
+    eval "$startup_command"
+
+    local exit_code=$?
+    if [ $exit_code -ne 0 ]; then
+        echo "❌ ERROR: Restart failed with exit code $exit_code. Please check the logs for more details."
+        exit 1
+    fi
+
+    echo "✅ Restart completed successfully."
+}
+
+# Function to show detailed status
+show_detailed_status() {
+    echo "📊 InvenioRDM Process Status"
+    echo "================================"
+    
+    # Check InvenioRDM process status
+    local pid=$(get_invenio_pid)
+    if [ -n "$pid" ]; then
+        echo "✅ InvenioRDM: Running (PID: $pid)"
+        
+        # Show process details
+        if command -v ps >/dev/null 2>&1; then
+            echo "   Process details:"
+            ps -p "$pid" -o pid,ppid,pcpu,pmem,etime,cmd 2>/dev/null | head -2 | tail -1 | sed 's/^/   /'
+        fi
+        
+        # Check if process is responding (if port is known)
+        if [ -f "invenio.pid" ]; then
+            local port=$(lsof -p "$pid" -i -P -n 2>/dev/null | grep LISTEN | grep -o ':\([0-9]*\)' | head -1 | cut -d: -f2)
+            if [ -n "$port" ]; then
+                echo "   Listening on port: $port"
+                if curl -k -s -f "https://127.0.0.1:$port" >/dev/null 2>&1; then
+                    echo "   Status: ✅ Responding to HTTPS requests"
+                else
+                    echo "   Status: ⚠️  Not responding to HTTPS requests"
+                fi
+            fi
+        fi
+    else
+        echo "❌ InvenioRDM: Not running"
+    fi
+    
+    echo ""
+    echo "🐳 Container Status Summary"
+    echo "================================"
+    
+    # Check if docker-compose is available and show container status
+    if command -v docker-compose >/dev/null 2>&1 && [ -f "docker-compose.yml" ]; then
+        # Load environment and show container status
+        if [ -f ~/.config/lbnl-data-repository/.env ]; then
+            env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) docker-compose -f docker-compose.yml ps --format table
+        else
+            echo "⚠️  Environment file not found, showing basic container status:"
+            docker-compose -f docker-compose.yml ps --format table 2>/dev/null || echo "❌ Unable to get container status"
+        fi
+    else
+        echo "⚠️  docker-compose or docker-compose.yml not available"
+    fi
+    
+    echo ""
+    echo "🔌 Port Usage Summary"
+    echo "================================"
+    
+    # Check key service ports
+    local ports=(5002 5601 5050 15672 5432 6379 9200 443 80)
+    local port_names=("InvenioRDM" "OpenSearch Dashboards" "PgAdmin" "RabbitMQ Management" "PostgreSQL" "Redis" "OpenSearch" "HTTPS Frontend" "HTTP Frontend")
+    
+    for i in "${!ports[@]}"; do
+        local port="${ports[$i]}"
+        local name="${port_names[$i]}"
+        
+        if lsof -i ":$port" >/dev/null 2>&1; then
+            local process_info=$(lsof -i ":$port" -P -n 2>/dev/null | grep LISTEN | head -1 | awk '{print $1, $2}')
+            echo "✅ Port $port ($name): In use by $process_info"
+        else
+            echo "⚪ Port $port ($name): Available"
+        fi
+    done
+}
+
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -189,14 +632,39 @@ while [[ $# -gt 0 ]]; do
             RESET_MODE=true
             shift
             ;;
+        --stop)
+            STOP_MODE=true
+            shift
+            ;;
+        --stop-all)
+            STOP_ALL_MODE=true
+            shift
+            ;;
+        --restart)
+            RESTART_MODE=true
+            shift
+            ;;
+        --status)
+            STATUS_MODE=true
+            shift
+            ;;
+        --internal-restart-marker)
+            # Internal flag to track restart operations
+            IS_RESTART_OPERATION=true
+            shift
+            ;;
         --help)
-            echo "Usage: $0 [--debug] [--port <port>] [--invenio] [--reset]"
+            echo "Usage: $0 [--debug] [--port <port>] [--invenio] [--reset] [--stop] [--stop-all] [--restart] [--status]"
             echo "Options:"
-            echo "  --debug    Start containers only (for debugging)"
-            echo "  --port     Specify InvenioRDM port (default: 5002)"
-            echo "  --invenio  Start InvenioRDM after containers are ready"
-            echo "  --reset    Reset all data and reinitialize (DESTRUCTIVE)"
-            echo "  --help     Show this help message"
+            echo "  --debug      Start containers only (for debugging)"
+            echo "  --port       Specify InvenioRDM port (default: 5002)"
+            echo "  --invenio    Start InvenioRDM after containers are ready"
+            echo "  --reset      Reset all data and reinitialize (DESTRUCTIVE)"
+            echo "  --stop       Stop InvenioRDM process only (containers keep running)"
+            echo "  --stop-all   Stop InvenioRDM process + all containers (preserve data/volumes)"
+            echo "  --restart    Stop everything, then restart with same options"
+            echo "  --status     Show detailed status of InvenioRDM process and all containers"
+            echo "  --help       Show this help message"
             echo ""
             echo "Examples:"
             echo "  $0                           # Start containers only"
@@ -206,6 +674,10 @@ while [[ $# -gt 0 ]]; do
             echo "  $0 --reset                   # Reset all data + containers only"
             echo "  $0 --reset --invenio         # Reset all data + containers + InvenioRDM"
             echo "  $0 --reset --invenio --port 8080  # Reset + containers + InvenioRDM on port 8080"
+            echo "  $0 --stop                    # Stop InvenioRDM process only"
+            echo "  $0 --stop-all               # Stop InvenioRDM + all containers"
+            echo "  $0 --restart --invenio      # Restart everything + InvenioRDM"
+            echo "  $0 --status                 # Show detailed status"
             exit 0
             ;;
         *)
@@ -215,6 +687,53 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# Validate that only one primary mode is selected
+mode_count=0
+selected_modes=""
+if [ "$STATUS_MODE" = true ]; then mode_count=$((mode_count + 1)); selected_modes="$selected_modes --status"; fi
+if [ "$STOP_MODE" = true ]; then mode_count=$((mode_count + 1)); selected_modes="$selected_modes --stop"; fi
+if [ "$STOP_ALL_MODE" = true ]; then mode_count=$((mode_count + 1)); selected_modes="$selected_modes --stop-all"; fi
+if [ "$RESTART_MODE" = true ]; then mode_count=$((mode_count + 1)); selected_modes="$selected_modes --restart"; fi
+if [ "$RESET_MODE" = true ]; then mode_count=$((mode_count + 1)); selected_modes="$selected_modes --reset"; fi
+
+if [ $mode_count -gt 1 ]; then
+    echo "❌ ERROR: Multiple conflicting modes selected:$selected_modes"
+    echo "Please choose only one primary mode. Use --help for usage information."
+    exit 1
+fi
+
+# Handle the new modes before existing startup logic
+if [ "$STATUS_MODE" = true ]; then
+    show_detailed_status
+    exit 0
+elif [ "$STOP_MODE" = true ]; then
+    echo "🛑 Stopping InvenioRDM process..."
+    if stop_invenio_process; then
+        echo "✅ InvenioRDM process stopped successfully"
+        exit 0
+    else
+        echo "❌ Failed to stop InvenioRDM process"
+        exit 1
+    fi
+elif [ "$STOP_ALL_MODE" = true ]; then
+    echo "🛑 Stopping all services (InvenioRDM + containers)..."
+    if stop_all_services; then
+        echo "✅ All services stopped successfully"
+        exit 0
+    else
+        echo "❌ Failed to stop all services"
+        exit 1
+    fi
+elif [ "$RESTART_MODE" = true ]; then
+    echo "🔄 Initiating restart sequence..."
+    if restart_services; then
+        exit 0
+    else
+        echo "❌ Restart sequence failed"
+        exit 1
+    fi
+fi
 
 # Update mode announcement
 if [ "$RESET_MODE" = true ]; then
@@ -409,6 +928,8 @@ if [ "$START_INVENIO" = true ]; then
         echo "🎉 =================================================="
         if [ "$RESET_MODE" = true ]; then
             echo "✅       RESET + INITIALIZATION COMPLETE!"
+        elif [ "$IS_RESTART_OPERATION" = true ]; then
+            echo "✅           RESTART COMPLETE!"
         else
             echo "✅           ALL SERVICES READY!"
         fi
@@ -421,10 +942,12 @@ if [ "$START_INVENIO" = true ]; then
         echo "   • RabbitMQ Management:    http://127.0.0.1:15672"
         echo ""
         echo "🛠️  Management Commands:"
-        echo "   • Stop InvenioRDM: kill \$(cat invenio.pid) && rm -f invenio.pid"
-        echo "   • Check status:    docker-compose -f docker-compose.yml ps"
-        echo "   • View logs:       docker-compose -f docker-compose.yml logs -f <service>"
-        echo "   • InvenioRDM logs: tail -f invenio.log"
+        echo "   • Stop InvenioRDM only:    $0 --stop"
+        echo "   • Stop all services:       $0 --stop-all"
+        echo "   • Restart services:        $0 --restart --invenio"
+        echo "   • Check detailed status:   $0 --status"
+        echo "   • View logs:               docker-compose -f docker-compose.yml logs -f <service>"
+        echo "   • InvenioRDM logs:         tail -f invenio.log"
         echo ""
         echo "🚀 Your development environment is ready!"
         echo "=================================================="
