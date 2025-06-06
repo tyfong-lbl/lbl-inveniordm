@@ -117,9 +117,9 @@ Add utility functions for better process management. Add these functions after t
 
 1. Add a function `get_invenio_pid()` that:
    - Checks if invenio.pid file exists
-   - Validates the PID is still running
-   - Returns the PID or empty string if not running
-
+   - Validates the PID empty string if not running
+is still running
+   - Returns the PID or 
 2. Add a function `is_invenio_running()` that:
    - Uses get_invenio_pid to check if InvenioRDM is running
    - Returns 0 (true) if running, 1 (false) if not
@@ -287,7 +287,6 @@ Fix the file storage location issue by updating the initialization logic:
    ```
 
 4. Update the command in the commands array to use the variable:
-   ```bash
    "invenio files location create --default 'default-location' '$FILES_LOCATION'"
    ```
 
@@ -302,11 +301,11 @@ Make sure the path handling works correctly for both relative and absolute paths
 ## Prompt 7: Repository Management - .gitignore
 
 ```
-/edit
+/edit .gitignore
 
-Create a new .gitignore file for the project to handle InvenioRDM-specific files and directories:
+Edit the .gitignore file for the project to handle InvenioRDM-specific files and directories:
 
-1. Create a comprehensive .gitignore file that includes:
+1. Ensure there is a comprehensive .gitignore file that includes:
 
    **InvenioRDM Instance Files:**
    - instance/

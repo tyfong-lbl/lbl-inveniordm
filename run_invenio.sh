@@ -144,6 +144,7 @@ initialize_invenio() {
     local commands=(
         "invenio db init"
         "invenio db create"
+        "invenio alembic upgrade"
         "invenio index init"
         "invenio files location create --default 'default-location' '$FILES_LOCATION'"
         "invenio roles create admin"
