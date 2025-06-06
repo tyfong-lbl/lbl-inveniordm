@@ -146,7 +146,7 @@ initialize_invenio() {
         "invenio db create"
         "invenio alembic upgrade"
         "invenio index init"
-        "invenio files location create --default 'default-location' '$FILES_LOCATION'"
+        "invenio files location create --default default-location '$FILES_LOCATION'"
         "invenio roles create admin"
     )
     
@@ -155,12 +155,33 @@ initialize_invenio() {
         total_count=$((total_count + 1))
         echo "Running: $cmd"
         
-        if env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) $cmd > /dev/null 2>&1; then
-            echo "✅ $cmd - SUCCESS"
-            success_count=$((success_count + 1))
+        # Special handling for files location command to get detailed error info
+        if [[ "$cmd" == *"files location create"* ]]; then
+            echo "🔍 DEBUG: Checking existing file locations before creating new one..."
+            env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) invenio files location list 2>&1 | head -10
+            
+            echo "🔍 DEBUG: Environment variables for files command:"
+            echo "   FILES_LOCATION: $FILES_LOCATION"
+            echo "   SQLALCHEMY_DATABASE_URI: $(env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) printenv SQLALCHEMY_DATABASE_URI 2>/dev/null || echo 'Not set in env')"
+            
+            echo "🔍 DEBUG: Running files location command with verbose output..."
+            if env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) $cmd 2>&1; then
+                echo "✅ $cmd - SUCCESS"
+                success_count=$((success_count + 1))
+            else
+                echo "❌ $cmd - FAILED"
+                echo "🔍 DEBUG: Full error output:"
+                env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) $cmd 2>&1 | tail -20
+                failed_commands+=("$cmd")
+            fi
         else
-            echo "❌ $cmd - FAILED"
-            failed_commands+=("$cmd")
+            if env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) $cmd > /dev/null 2>&1; then
+                echo "✅ $cmd - SUCCESS"
+                success_count=$((success_count + 1))
+            else
+                echo "❌ $cmd - FAILED"
+                failed_commands+=("$cmd")
+            fi
         fi
         echo ""
     done
