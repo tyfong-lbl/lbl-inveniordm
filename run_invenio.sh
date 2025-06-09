@@ -1,5 +1,13 @@
 #!/bin/bash
 
+log() {
+    echo "$(date): $1"
+}
+
+log() {
+    echo "$(date): $1"
+}
+
 # Store original arguments for restart functionality
 ORIGINAL_ARGS=("$@")
 
@@ -14,6 +22,39 @@ STOP_MODE=false
 STOP_ALL_MODE=false
 RESTART_MODE=false
 STATUS_MODE=false
+START_MODE=false
+
+# Parse command-line arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --reset)
+            RESET_MODE=true
+            ;;
+        --invenio)
+            START_INVENIO=true
+            ;;
+        --stop)
+            STOP_MODE=true
+            ;;
+        --stop-all)
+            STOP_ALL_MODE=true
+            ;;
+        --restart)
+            RESTART_MODE=true
+            ;;
+        --status)
+            STATUS_MODE=true
+            ;;
+        --start)
+            START_MODE=true
+            ;;
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+    shift
+done
 
 # Function to perform reset and initialization
 perform_reset_and_init() {
@@ -631,15 +672,24 @@ show_detailed_status() {
 }
 
 # Parse command line arguments
+echo "Arguments: $@"
 while [[ $# -gt 0 ]]; do
+    echo "Processing argument: $1"
     case $1 in
         --debug)
             DEBUG_MODE=true
+            echo "DEBUG_MODE set to true"
+            shift
+            ;;
+        --start)
+            START_MODE=true
+            echo "START_MODE set to true"
             shift
             ;;
         --port)
             if [[ -n $2 && $2 =~ ^[0-9]+$ ]]; then
                 INVENIO_PORT=$2
+                echo "INVENIO_PORT set to $INVENIO_PORT"
             else
                 echo "❌ ERROR: --port requires a numeric argument"
                 exit 1
@@ -648,37 +698,56 @@ while [[ $# -gt 0 ]]; do
             ;;
         --invenio)
             START_INVENIO=true
+            echo "START_INVENIO set to true"
             shift
             ;;
         --reset)
             RESET_MODE=true
+            echo "RESET_MODE set to true"
             shift
             ;;
         --stop)
             STOP_MODE=true
+            echo "STOP_MODE set to true"
             shift
             ;;
         --stop-all)
             STOP_ALL_MODE=true
+            echo "STOP_ALL_MODE set to true"
             shift
             ;;
         --restart)
             RESTART_MODE=true
+            echo "RESTART_MODE set to true"
             shift
             ;;
         --status)
+        echo "DEBUG: After argument parsing loop"
+        echo "DEBUG: DEBUG_MODE=$DEBUG_MODE"
+        echo "DEBUG: START_MODE=$START_MODE"
+        echo "DEBUG: INVENIO_PORT=$INVENIO_PORT"
+        echo "DEBUG: START_INVENIO=$START_INVENIO"
+        echo "DEBUG: RESET_MODE=$RESET_MODE"
+        echo "DEBUG: STOP_MODE=$STOP_MODE"
+        echo "DEBUG: STOP_ALL_MODE=$STOP_ALL_MODE"
+        echo "DEBUG: RESTART_MODE=$RESTART_MODE"
+        echo "DEBUG: STATUS_MODE=$STATUS_MODE"
+        echo "DEBUG: IS_RESTART_OPERATION=$IS_RESTART_OPERATION"
             STATUS_MODE=true
+            echo "STATUS_MODE set to true"
             shift
             ;;
         --internal-restart-marker)
             # Internal flag to track restart operations
             IS_RESTART_OPERATION=true
+            echo "IS_RESTART_OPERATION set to true"
             shift
             ;;
         --help)
             echo "Usage: $0 [--debug] [--port <port>] [--invenio] [--reset] [--stop] [--stop-all] [--restart] [--status]"
             echo "Options:"
             echo "  --debug      Start containers only (for debugging)"
+            echo "  --start      Start InvenioRDM after containers are ready"
             echo "  --port       Specify InvenioRDM port (default: 5002)"
             echo "  --invenio    Start InvenioRDM after containers are ready"
             echo "  --reset      Reset all data and reinitialize (DESTRUCTIVE)"
@@ -709,11 +778,13 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+echo "Final states: DEBUG_MODE=$DEBUG_MODE, START_MODE=$START_MODE, INVENIO_PORT=$INVENIO_PORT, START_INVENIO=$START_INVIO, RESET_MODE=$RESET_MODE, STOP_MODE=$STOP_MODE, STOP_ALL_MODE=$STOP_ALL_MODE, RESTART_MODE=$RESTART_MODE, STATUS_MODE=$STATUS_MODE, IS_RESTART_OPERATION=$IS_RESTART_OPERATION"
 
 # Validate that only one primary mode is selected
 mode_count=0
 selected_modes=""
 if [ "$STATUS_MODE" = true ]; then mode_count=$((mode_count + 1)); selected_modes="$selected_modes --status"; fi
+if [ "$START_MODE" = true ]; then mode_count=$((mode_count + 1)); selected_modes="$selected_modes --start"; fi
 if [ "$STOP_MODE" = true ]; then mode_count=$((mode_count + 1)); selected_modes="$selected_modes --stop"; fi
 if [ "$STOP_ALL_MODE" = true ]; then mode_count=$((mode_count + 1)); selected_modes="$selected_modes --stop-all"; fi
 if [ "$RESTART_MODE" = true ]; then mode_count=$((mode_count + 1)); selected_modes="$selected_modes --restart"; fi
@@ -755,6 +826,40 @@ elif [ "$RESTART_MODE" = true ]; then
         echo "❌ Restart sequence failed"
         exit 1
     fi
+elif [ "$START_MODE" = true ]; then
+    echo "🚀 Starting containers and preparing environment..."
+    
+    # Call check_and_start_containers function with error handling
+    if check_and_start_containers; then
+        echo "✅ Containers started successfully"
+        
+        # Set START_INVENIO flag based on --invenio parameter
+        if [ "$START_INVENIO" = true ]; then
+            echo "📋 Container-only mode complete. InvenioRDM will be started after initialization."
+        else
+            echo "📦 Container-only mode: Services are ready for use"
+            echo ""
+            echo "🌐 Available Services:"
+            echo "   • Database:               localhost:5432"
+            echo "   • OpenSearch:             https://localhost:9200"
+            echo "   • OpenSearch Dashboards:  https://localhost:5601"
+            echo "   • Redis Cache:            localhost:6379"
+            echo "   • RabbitMQ:               localhost:5672"
+            echo "   • RabbitMQ Management:    http://localhost:15672"
+            echo ""
+            echo "🛠️  Next Steps:"
+            echo "   • To start InvenioRDM:      $0 --invenio"
+            echo "   • To check status:          $0 --status"
+            echo "   • To stop containers:       $0 --stop-all"
+            echo ""
+            echo "✅ Container startup complete!"
+            exit 0
+        fi
+    else
+        echo "❌ Failed to start containers"
+        echo "   Please check Docker daemon status and container logs for details."
+        exit 1
+    fi
 fi
 
 # Update mode announcement
@@ -771,6 +876,7 @@ elif [ "$DEBUG_MODE" = true ]; then
 else
     echo "📦 Starting in CONTAINER mode (containers only)"
 fi
+
 
 # Perform reset if requested
 if [ "$RESET_MODE" = true ]; then
@@ -874,6 +980,86 @@ check_services_ready() {
     return 0
 }
 
+# Function to check and start containers
+check_and_start_containers() {
+    echo "🔍 Checking container status..."
+    
+    # Check if environment file exists
+    if [ ! -f ~/.config/lbnl-data-repository/.env ]; then
+        echo "❌ ERROR: Environment file not found at ~/.config/lbnl-data-repository/.env"
+        echo "   Please ensure the environment configuration is properly set up."
+        return 1
+    fi
+    
+    # Check if docker-compose.yml exists
+    if [ ! -f docker-compose.yml ]; then
+        echo "❌ ERROR: docker-compose.yml not found in current directory"
+        echo "   Please run this script from the project root directory."
+        return 1
+    fi
+    
+    # Load environment and check container status
+    echo "📋 Loading environment configuration..."
+    local container_status
+    container_status=$(env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) docker-compose -f docker-compose.yml ps -q 2>/dev/null)
+    
+    if [ $? -ne 0 ]; then
+        echo "❌ ERROR: Failed to check container status"
+        echo "   Please ensure Docker and docker-compose are properly installed and running."
+        return 1
+    fi
+    
+    # Check if any containers are running
+    local running_containers
+    running_containers=$(env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) docker-compose -f docker-compose.yml ps --filter "status=running" -q 2>/dev/null | wc -l | tr -d ' ')
+    
+    if [ "$running_containers" -gt 0 ]; then
+        echo "⚠️  Containers are already running!"
+        echo ""
+        echo "📊 Current container status:"
+        env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) docker-compose -f docker-compose.yml ps --format table
+        echo ""
+        echo "❌ ERROR: Cannot start containers - some are already running"
+        echo "   • To view detailed status: $0 --status"
+        echo "   • To stop all containers: $0 --stop-all"
+        echo "   • To restart services: $0 --restart"
+        return 1
+    fi
+    
+    # Check if any containers exist but are stopped
+    local stopped_containers
+    stopped_containers=$(env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) docker-compose -f docker-compose.yml ps -a -q 2>/dev/null | wc -l | tr -d ' ')
+    
+    if [ "$stopped_containers" -gt 0 ]; then
+        echo "🔄 Found stopped containers, starting them..."
+        echo ""
+        echo "📊 Container status before start:"
+        env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) docker-compose -f docker-compose.yml ps --format table
+        echo ""
+    else
+        echo "🆕 No existing containers found, creating and starting new ones..."
+        echo ""
+    fi
+    
+    # Start containers with docker-compose up -d
+    echo "🚀 Starting Docker containers..."
+    if env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) docker-compose -f docker-compose.yml up -d --remove-orphans; then
+        echo "✅ Containers started successfully"
+        echo ""
+        echo "📊 Updated container status:"
+        env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) docker-compose -f docker-compose.yml ps --format table
+        echo ""
+        return 0
+    else
+        echo "❌ ERROR: Failed to start containers"
+        echo "   Please check Docker daemon status and container logs for details."
+        echo ""
+        echo "🔍 Recent container logs:"
+        env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) docker-compose -f docker-compose.yml logs --tail=10 2>/dev/null || echo "   Unable to retrieve logs"
+        return 1
+    fi
+}
+
 # Show initial container status
 echo "Initial container status:"
 env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) docker-compose -f docker-compose.yml ps
@@ -936,9 +1122,22 @@ done
 echo "All services are ready!"
 
 # Initialize database if reset was performed
-if [ "$RESET_MODE" = true ]; then
-    echo ""
+if [[ "$RESET_MODE" == "true" ]]; then
     initialize_invenio
+elif [[ "$START_INVENIO" == "true" ]]; then
+    if invenio db version &>/dev/null; then
+        log "Existing database detected, skipping db init and db create..."
+        if ! (invenio alembic upgrade && invenio index init); then
+            log "ERROR: Restart initialization failed. Please run with --reset flag to reinitialize."
+            INITIALIZATION_FAILED=true
+        fi
+    else
+        log "No existing database detected, running full initialization..."
+        initialize_invenio
+    fi
+else
+    log "Unsupported mode or flags combination."
+    exit 1
 fi
 
 # Start InvenioRDM if requested
@@ -952,6 +1151,12 @@ if [ "$START_INVENIO" = true ]; then
             echo "✅       RESET + INITIALIZATION COMPLETE!"
         elif [ "$IS_RESTART_OPERATION" = true ]; then
             echo "✅           RESTART COMPLETE!"
+        elif [ "$START_MODE" = true ]; then
+            if [ "$START_INVENIO" = true ]; then
+                echo "✅       START + INVENIO LAUNCH COMPLETE!"
+            else
+                echo "✅       START + CONTAINERS READY!"
+            fi
         else
             echo "✅           ALL SERVICES READY!"
         fi
@@ -982,6 +1187,9 @@ else
     if [ "$RESET_MODE" = true ]; then
         echo "📦 Reset + Container mode: Services reset and started successfully"
         echo "   • Database and search indices have been initialized"
+    elif [ "$START_MODE" = true ]; then
+        echo "📦 Start + Container mode: Services started successfully"
+        echo "   • Containers launched and ready for use"
     else
         echo "📦 Container mode: Services started successfully"
     fi
