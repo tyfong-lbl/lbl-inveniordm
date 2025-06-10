@@ -55,6 +55,82 @@ while [[ $# -gt 0 ]]; do
     esac
     shift
 done
+# Function to check and start containers
+check_and_start_containers() {
+    echo "🔍 Checking container status..."
+    
+    # Check if environment file exists
+    if [ ! -f ~/.config/lbnl-data-repository/.env ]; then
+        echo "❌ ERROR: Environment file not found at ~/.config/lbnl-data-repository/.env"
+        echo "   Please ensure the environment configuration is properly set up."
+        return 1
+    fi
+    
+    # Check if docker-compose.yml exists
+    if [ ! -f docker-compose.yml ]; then
+        echo "❌ ERROR: docker-compose.yml not found in current directory"
+        echo "   Please run this script from the project root directory."
+        return 1
+    fi
+    
+    # Load environment and check container status
+    echo "📋 Loading environment configuration..."
+    local container_status
+    container_status=$(env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) docker-compose -f docker-compose.yml ps -q 2>/dev/null)
+    
+    if [ $? -ne 0 ]; then
+        echo "❌ ERROR: Failed to check container status"
+        echo "   Please ensure Docker and docker-compose are properly installed and running."
+        return 1
+    fi
+    
+    # Check if any containers are running
+    local running_containers
+    running_containers=$(env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) docker-compose -f docker-compose.yml ps --filter "status=running" -q 2>/dev/null | wc -l | tr -d ' ')
+    
+    if [ "$running_containers" -gt 0 ]; then
+        echo "✅ Containers are already running!"
+        echo ""
+        echo "📊 Current container status:"
+        env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) docker-compose -f docker-compose.yml ps --format table
+        echo ""
+        echo "🚀 Containers are ready - proceeding with InvenioRDM startup..."
+        return 0
+    fi
+    
+    # Check if any containers exist but are stopped
+    local stopped_containers
+    stopped_containers=$(env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) docker-compose -f docker-compose.yml ps -a -q 2>/dev/null | wc -l | tr -d ' ')
+    
+    if [ "$stopped_containers" -gt 0 ]; then
+        echo "🔄 Found stopped containers, starting them..."
+        echo ""
+        echo "📊 Container status before start:"
+        env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) docker-compose -f docker-compose.yml ps --format table
+        echo ""
+    else
+        echo "🆕 No existing containers found, creating and starting new ones..."
+        echo ""
+    fi
+    
+    # Start containers with docker-compose up -d
+    echo "🚀 Starting Docker containers..."
+    if env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) docker-compose -f docker-compose.yml up -d --remove-orphans; then
+        echo "✅ Containers started successfully"
+        echo ""
+        echo "📊 Updated container status:"
+        env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) docker-compose -f docker-compose.yml ps --format table
+        echo ""
+        return 0
+    else
+        echo "❌ ERROR: Failed to start containers"
+        echo "   Please check Docker daemon status and container logs for details."
+        echo ""
+        echo "🔍 Recent container logs:"
+        env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) docker-compose -f docker-compose.yml logs --tail=10 2>/dev/null || echo "   Unable to retrieve logs"
+        return 1
+    fi
+}
 
 # Function to perform reset and initialization
 perform_reset_and_init() {
@@ -980,85 +1056,6 @@ check_services_ready() {
     return 0
 }
 
-# Function to check and start containers
-check_and_start_containers() {
-    echo "🔍 Checking container status..."
-    
-    # Check if environment file exists
-    if [ ! -f ~/.config/lbnl-data-repository/.env ]; then
-        echo "❌ ERROR: Environment file not found at ~/.config/lbnl-data-repository/.env"
-        echo "   Please ensure the environment configuration is properly set up."
-        return 1
-    fi
-    
-    # Check if docker-compose.yml exists
-    if [ ! -f docker-compose.yml ]; then
-        echo "❌ ERROR: docker-compose.yml not found in current directory"
-        echo "   Please run this script from the project root directory."
-        return 1
-    fi
-    
-    # Load environment and check container status
-    echo "📋 Loading environment configuration..."
-    local container_status
-    container_status=$(env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) docker-compose -f docker-compose.yml ps -q 2>/dev/null)
-    
-    if [ $? -ne 0 ]; then
-        echo "❌ ERROR: Failed to check container status"
-        echo "   Please ensure Docker and docker-compose are properly installed and running."
-        return 1
-    fi
-    
-    # Check if any containers are running
-    local running_containers
-    running_containers=$(env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) docker-compose -f docker-compose.yml ps --filter "status=running" -q 2>/dev/null | wc -l | tr -d ' ')
-    
-    if [ "$running_containers" -gt 0 ]; then
-        echo "⚠️  Containers are already running!"
-        echo ""
-        echo "📊 Current container status:"
-        env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) docker-compose -f docker-compose.yml ps --format table
-        echo ""
-        echo "❌ ERROR: Cannot start containers - some are already running"
-        echo "   • To view detailed status: $0 --status"
-        echo "   • To stop all containers: $0 --stop-all"
-        echo "   • To restart services: $0 --restart"
-        return 1
-    fi
-    
-    # Check if any containers exist but are stopped
-    local stopped_containers
-    stopped_containers=$(env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) docker-compose -f docker-compose.yml ps -a -q 2>/dev/null | wc -l | tr -d ' ')
-    
-    if [ "$stopped_containers" -gt 0 ]; then
-        echo "🔄 Found stopped containers, starting them..."
-        echo ""
-        echo "📊 Container status before start:"
-        env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) docker-compose -f docker-compose.yml ps --format table
-        echo ""
-    else
-        echo "🆕 No existing containers found, creating and starting new ones..."
-        echo ""
-    fi
-    
-    # Start containers with docker-compose up -d
-    echo "🚀 Starting Docker containers..."
-    if env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) docker-compose -f docker-compose.yml up -d --remove-orphans; then
-        echo "✅ Containers started successfully"
-        echo ""
-        echo "📊 Updated container status:"
-        env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) docker-compose -f docker-compose.yml ps --format table
-        echo ""
-        return 0
-    else
-        echo "❌ ERROR: Failed to start containers"
-        echo "   Please check Docker daemon status and container logs for details."
-        echo ""
-        echo "🔍 Recent container logs:"
-        env $(cat ~/.config/lbnl-data-repository/.env | grep -v '^#' | sed 's/[[:space:]]*$//' | xargs) docker-compose -f docker-compose.yml logs --tail=10 2>/dev/null || echo "   Unable to retrieve logs"
-        return 1
-    fi
-}
 
 # Show initial container status
 echo "Initial container status:"
@@ -1120,6 +1117,36 @@ while ! check_services_ready; do
 done
 
 echo "All services are ready!"
+# Wait for database to be ready for InvenioRDM operations
+echo "🔍 Waiting for database to be ready for InvenioRDM operations..."
+db_ready_timeout=60  # 1 minute timeout for database readiness
+db_ready_elapsed=0
+db_ready_interval=2
+
+while true; do
+    if invenio db version &>/dev/null; then
+        echo "✅ Database is ready for InvenioRDM operations"
+        break
+    fi
+    
+    if [ $db_ready_elapsed -ge $db_ready_timeout ]; then
+        echo "⚠️  Database readiness timeout after ${db_ready_timeout} seconds"
+        echo "   Proceeding with initialization attempt..."
+        break
+    fi
+    
+    echo "   Database not ready for InvenioRDM yet, waiting... (${db_ready_elapsed}s/${db_ready_timeout}s)"
+    sleep $db_ready_interval
+    db_ready_elapsed=$((db_ready_elapsed + db_ready_interval))
+done
+
+# Database persistence status logging
+echo "Database persistence: Using ${HOME}/.config/lbnl-data-repository/db-data"
+if [ -d "${HOME}/.config/lbnl-data-repository/db-data" ]; then
+    echo "Database data directory exists - data will be preserved"
+else
+    echo "Database data directory will be created - first-time setup"
+fi
 
 # Initialize database if reset was performed
 if [[ "$RESET_MODE" == "true" ]]; then

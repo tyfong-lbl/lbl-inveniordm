@@ -46,6 +46,8 @@ services:
       - "POSTGRES_USER=${POSTGRES_USER:-lbnl-data-repository}"
       - "POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-lbnl-data-repository}"
       - "POSTGRES_DB=${POSTGRES_DB:-lbnl-data-repository}"
+    volumes:
+      - "${HOME}/.config/lbnl-data-repository/db-data:/var/lib/postgresql/data:rw"
     networks: 
       - internal-net
     #ports:
