@@ -9,6 +9,7 @@
 # bootstrap script located in ./scripts/bootstrap.
 
 FROM registry.cern.ch/inveniosoftware/almalinux:1
+WORKDIR /app  <!-- ADD THIS LINE -->
 
 COPY site ./site
 COPY Pipfile Pipfile.lock ./

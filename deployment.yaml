@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lbnl-data-repository-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: lbnl-data-repository
+  template:
+    metadata:
+      labels:
+        app: lbnl-data-repository
+    spec:
+      containers:
+      - name: lbnl-data-repository
+        image: your-container-registry/lbnl-data-repository:latest
+        ports:
+        - containerPort: 5000
+        env:
+        - name: INVENIO_INSTANCE_PATH
+          value: /opt/invenio-instance
+        - name: FLASK_APP
+          value: invenio_app_rdm:create_app
+        - name: FLASK_ENV
+          value: production
+        volumeMounts:
+        - name: app-storage
+          mountPath: /opt/invenio-instance
+      volumes:
+      - name: app-storage
+        persistentVolumeClaim:
+          claimName: lbnl-data-repository-pvc

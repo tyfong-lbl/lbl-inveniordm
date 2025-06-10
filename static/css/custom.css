@@ -1,9 +1,79 @@
+/* Ultra-simple fix for white space issue */
+html, body {
+    margin: 0;
+    padding: 0;
+    background-color: #00313C !important;
+}
+
+/* Style for main content */
+main#main {
+    background-color: white;
+}
+
+/* Ensure body has dark background to bottom */
+body::after {
+    content: "";
+    display: block;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 200px; /* Tall enough to cover any potential gap */
+    background-color: #00313C;
+    z-index: -1; /* Behind everything */
+}
+
+/* Footer styling */
 #rdm-footer-element {
-    background-color: #B1B3B3;
-    /* light gray  */
+    background-color: #00313C;
     color: #B1B3B3;
     padding: 20px 0;
-    margin-top: 40px;
+    width: 100%;
+    position: relative;
+    z-index: 1; /* Above the fixed background */
+}
+
+/* Sub-footer styling */
+.footer-bottom.sub-footer {
+    background-color: #00313C;
+    width: 100%;
+    margin: 0;
+    padding: 10px 0;
+    position: relative;
+    z-index: 1;
+}
+
+/* Make sure nested footers don't add spacing */
+#rdm-footer-element #rdm-footer-element {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Style footer links */
+#rdm-footer-element .ui.medium.header {
+    color: white;
+    margin-bottom: 1em;
+}
+
+#rdm-footer-element .ui.secondary.menu {
+    background: transparent;
+}
+
+#rdm-footer-element .ui.secondary.menu .item {
+    color: white;
+    padding: 0.5em 1em 0.5em 0;
+}
+
+#rdm-footer-element a {
+    color: white;
+}
+
+#rdm-footer-element {
+    background-color: #00313C;
+    color: #B1B3B3;
+    padding: 20px 0;
+    margin-top: 0;
+    width: 100%;
 }
 
 #rdm-footer-element .ui.medium.header {

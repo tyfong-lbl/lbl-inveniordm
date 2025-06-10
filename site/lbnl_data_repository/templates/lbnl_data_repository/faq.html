@@ -1,0 +1,114 @@
+{% extends "invenio_app_rdm/page.html" %}
+
+{% set title = _("Frequently Asked Questions") %}
+
+{% block head_links %}
+{{ super() }}
+<style type="text/css">
+  /* Fix for white space issue below footer */
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background-color: #00313C !important;
+  }
+  
+  main#main {
+    background-color: white !important;
+  }
+  
+  #rdm-footer-element {
+    background-color: #00313C !important;
+  }
+  
+  .footer-bottom.sub-footer {
+    background-color: #00313C !important;
+  }
+</style>
+{% endblock %}
+
+{% block page_body %}
+<div class="ui container page-body">
+    <h1>{{ title }}</h1>
+    <p>This page provides answers to frequently asked questions about {{ config.THEME_SITENAME }}.</p>
+
+    <div class="ui container faq-content">
+        <div class="ui styled accordion fluid" id="faq-accordion">
+            <div class="title active">
+                <i class="dropdown icon"></i>
+                What is {{ config.THEME_SITENAME }}?
+            </div>
+            <div class="content active">
+                <p>{{ config.THEME_SITENAME }} is a data repository service for Berkeley Lab users. It allows researchers to
+                    publish, preserve, and share their research data.</p>
+            </div>
+
+            <div class="title">
+                <i class="dropdown icon"></i>
+                How do I upload data?
+            </div>
+            <div class="content">
+                <p>To upload data, you need to:</p>
+                <ol>
+                    <li>Log in to your account</li>
+                    <li>Click on "Upload" in the main navigation</li>
+                    <li>Fill in the required metadata</li>
+                    <li>Upload your files</li>
+                    <li>Submit your deposit for review</li>
+                </ol>
+            </div>
+
+            <div class="title">
+                <i class="dropdown icon"></i>
+                What file formats are supported?
+            </div>
+            <div class="content">
+                <p>{{ config.THEME_SITENAME }} supports all file formats. However, we recommend using open and
+                    well-documented formats to ensure long-term accessibility of your data.</p>
+            </div>
+
+            <div class="title">
+                <i class="dropdown icon"></i>
+                What is the maximum file size?
+            </div>
+            <div class="content">
+                <p>The maximum file size for a single file is 50GB. For larger datasets, please contact our support team at
+                    <a href="mailto:{{ config.SUPPORT_EMAIL }}">{{ config.SUPPORT_EMAIL }}</a>.</p>
+            </div>
+
+            <div class="title">
+                <i class="dropdown icon"></i>
+                How do I cite data from {{ config.THEME_SITENAME }}?
+            </div>
+            <div class="content">
+                <p>Each dataset in {{ config.THEME_SITENAME }} has a unique DOI that can be used for citation. The citation
+                    information is provided on the record page of each dataset.</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        document.addEventListener('DOMContentLoaded', function() {
+            // First wait for jQuery to be loaded
+            (function waitForJQuery() {
+                if (window.jQuery) {
+                    // Now wait for Semantic UI accordion to be loaded
+                    (function waitForAccordion() {
+                        if (jQuery.fn.accordion) {
+                            // Both dependencies are available, initialize the accordion
+                            jQuery('#faq-accordion').accordion({
+                                exclusive: false
+                            });
+                        } else {
+                            // Semantic UI not ready yet, check again in 100ms
+                            setTimeout(waitForAccordion, 100);
+                        }
+                    })();
+                } else {
+                    // jQuery not ready yet, check again in 100ms
+                    setTimeout(waitForJQuery, 100);
+                }
+            })();
+        });
+    </script>
+</div>
+{% endblock page_body %}

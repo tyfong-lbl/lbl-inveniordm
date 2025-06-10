@@ -8,45 +8,57 @@ services:
     image: lbnl-data-repository
     restart: "unless-stopped"
     environment:
-      - "INVENIO_ACCOUNTS_SESSION_REDIS_URL=redis://cache:6379/1"
-      - "INVENIO_BROKER_URL=amqp://guest:guest@mq:5672/"
-      - "INVENIO_CACHE_REDIS_URL=redis://cache:6379/0"
+      - "INVENIO_ACCOUNTS_SESSION_REDIS_URL=redis://cache:${REDIS_PORT:-6379}/1"
+      - "INVENIO_BROKER_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@mq:${RABBITMQ_PORT:-5672}/"
+      - "INVENIO_CACHE_REDIS_URL=redis://cache:${REDIS_PORT:-6379}/0"
       - "INVENIO_CACHE_TYPE=redis"
-      - "INVENIO_CELERY_BROKER_URL=amqp://guest:guest@mq:5672/"
-      - "INVENIO_CELERY_RESULT_BACKEND=redis://cache:6379/2"
-      - "INVENIO_COMMUNITIES_IDENTITIES_CACHE_REDIS_URL=redis://cache:6379/4"
+      - "INVENIO_CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@mq:${RABBITMQ_PORT:-5672}/"
+      - "INVENIO_CELERY_RESULT_BACKEND=redis://cache:${REDIS_PORT:-6379}/2"
+      - "INVENIO_COMMUNITIES_IDENTITIES_CACHE_REDIS_URL=redis://cache:${REDIS_PORT:-6379}/4"
       - "INVENIO_SEARCH_HOSTS=['search:9200']"
       - "INVENIO_SECRET_KEY=CHANGE_ME"
-      - "INVENIO_SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://lbnl-data-repository:lbnl-data-repository@db/lbnl-data-repository"
+      - "INVENIO_SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://${POSTGRES_USER:-lbnl-data-repository}:${POSTGRES_PASSWORD:-lbnl-data-repository}@db/${POSTGRES_DB:-lbnl-data-repository}"
       - "INVENIO_WSGI_PROXIES=2"
-      - "INVENIO_RATELIMIT_STORAGE_URL=redis://cache:6379/3"
+      - "INVENIO_RATELIMIT_STORAGE_URL=redis://cache:${REDIS_PORT:-6379}/3"
   frontend:
-    build: ./docker/nginx/
+    build: 
+      context: ./docker/nginx/
+      dockerfile: Dockerfile
     image: lbnl-data-repository-frontend
     restart: "unless-stopped"
-    ports:
-      - "80"
-      - "443"
+    volumes:
+      - ${HOME}/.config/lbnl-data-repository/ssl/server.pem:/etc/ssl/certs/server.pem:ro
+      - ${HOME}/.config/lbnl-data-repository/ssl/server-key.pem:/etc/ssl/private/server-key.pem:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
   cache:
     image: redis:7
     restart: "unless-stopped"
     read_only: true
-    ports:
-      - "6379:6379"
+    networks: 
+      - internal-net
+    #ports:
+    #  - "6379:6379"
   db:
     image: postgres:14.13
     restart: "unless-stopped"
     environment:
-      - "POSTGRES_USER=lbnl-data-repository"
-      - "POSTGRES_PASSWORD=lbnl-data-repository"
-      - "POSTGRES_DB=lbnl-data-repository"
-    ports:
-      - "5432:5432"
+      - "POSTGRES_USER=${POSTGRES_USER:-lbnl-data-repository}"
+      - "POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-lbnl-data-repository}"
+      - "POSTGRES_DB=${POSTGRES_DB:-lbnl-data-repository}"
+    volumes:
+      - "${HOME}/.config/lbnl-data-repository/db-data:/var/lib/postgresql/data:rw"
+    networks: 
+      - internal-net
+    #ports:
+    #  - "127.0.0.1:5432:5432"
   pgadmin:
     image: dpage/pgadmin4:6
     restart: "unless-stopped"
-    ports:
-      - "5050:80"
+    networks: 
+      - internal-net
+    #ports:
+    #  - "5050:80"
     environment:
       PGADMIN_DEFAULT_EMAIL: "tyfong@lbl.gov"
       PGADMIN_DEFAULT_PASSWORD: "lbnl-data-repository"
@@ -55,19 +67,39 @@ services:
   mq:
     image: rabbitmq:3-management
     restart: "unless-stopped"
-    ports:
-      - "15672:15672"
-      - "5672:5672"
+    networks: 
+      - internal-net
+    #ports:
+    #  - "15672:15672"
+    #  - "5672:5672"
   search:
     image: opensearchproject/opensearch:2.17.1
     restart: "unless-stopped"
     environment:
-      # settings only for development. DO NOT use in production!
-      - bootstrap.memory_lock=true
+      # Security settings
+      - "DISABLE_SECURITY_PLUGIN=false"
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
-      - "DISABLE_INSTALL_DEMO_CONFIG=true"
-      - "DISABLE_SECURITY_PLUGIN=true"
+      - "plugins.security.ssl.http.enabled=true"
+      - "plugins.security.ssl.transport.enabled=true"
+      - "plugins.security.ssl.http.pemcert_filepath=/usr/share/opensearch/config/certificates/server.pem"
+      - "plugins.security.ssl.http.pemkey_filepath=/usr/share/opensearch/config/certificates/server-key.pem"
+      - "plugins.security.ssl.http.pemtrustedcas_filepath=/usr/share/opensearch/config/certificates/ca.pem"
+      - "plugins.security.ssl.transport.pemcert_filepath=/usr/share/opensearch/config/certificates/server.pem"
+      - "plugins.security.ssl.transport.pemkey_filepath=/usr/share/opensearch/config/certificates/server-key.pem"
+      - "plugins.security.ssl.transport.pemtrustedcas_filepath=/usr/share/opensearch/config/certificates/ca.pem"
+      - "plugins.security.allow_default_init_securityindex=true"
+      - "plugins.security.authcz.admin_dn=[\"CN=admin,OU=Development,O=LBNL,L=Berkeley,ST=California,C=US\"]"
+      - "plugins.security.nodes_dn=[\"CN=localhost,OU=Development,O=LBNL,L=Berkeley,ST=California,C=US\"]"
+      - "plugins.security.audit.type=internal_opensearch"
+      - "plugins.security.enable_snapshot_restore_privilege=true"
+      - "plugins.security.check_snapshot_restore_write_privileges=true"
+      - "plugins.security.restapi.roles_enabled=[\"all_access\", \"security_rest_api_access\"]"
+      # Other settings
+      - "bootstrap.memory_lock=true"
       - "discovery.type=single-node"
+      - "OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_ADMIN_PASSWORD}"
+    volumes:
+      - ${HOME}/.config/lbnl-data-repository/ssl:/usr/share/opensearch/config/certificates:ro
     ulimits:
       memlock:
         soft: -1
@@ -76,16 +108,25 @@ services:
         soft: 65536
         hard: 65536
     mem_limit: 2g
-    ports:
-      - "9200:9200"
-      - "9600:9600"
   opensearch-dashboards:
+    restart: "unless-stopped"
     image: opensearchproject/opensearch-dashboards:2.17.1
-    ports:
-      - "5601:5601"
-    expose:
-      - "5601"
     environment:
-      # settings only for development. DO NOT use in production!
-      - 'OPENSEARCH_HOSTS=["http://search:9200"]'
-      - "DISABLE_SECURITY_DASHBOARDS_PLUGIN=true"
+      - "DISABLE_SECURITY_DASHBOARDS_PLUGIN=false"
+      - "OPENSEARCH_HOSTS=https://search:9200"
+      - "OPENSEARCH_SSL_VERIFICATIONMODE=certificate"
+      - "OPENSEARCH_SSL_CERTIFICATEAUTHORITIES=/usr/share/opensearch-dashboards/config/certificates/ca.pem"
+      - "OPENSEARCH_USERNAME=${OPENSEARCH_ADMIN_USER:-admin}"
+      - "OPENSEARCH_PASSWORD=${OPENSEARCH_ADMIN_PASSWORD}"
+      - "SERVER_SSL_ENABLED=true"
+      - "SERVER_SSL_CERTIFICATE=/usr/share/opensearch-dashboards/config/certificates/server.pem"
+      - "SERVER_SSL_KEY=/usr/share/opensearch-dashboards/config/certificates/server-key.pem"
+    volumes:
+      - ${HOME}/.config/lbnl-data-repository/ssl:/usr/share/opensearch-dashboards/config/certificates:ro
+networks: 
+  internal-net:
+    driver: bridge
+
+
+
+

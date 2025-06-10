@@ -1,0 +1,49 @@
+# Builder Stage
+FROM registry.cern.ch/inveniosoftware/almalinux:1 AS builder
+
+# Install dependencies
+COPY Pipfile Pipfile.lock ./
+RUN pipenv install --deploy --system
+
+# Copy application code
+COPY site ./site
+COPY templates/ ./templates
+COPY app_data/ ./app_data
+COPY translations/ ./translations
+COPY . .
+
+# Collect static files and build assets
+RUN cp -r ./static/. ${INVENIO_INSTANCE_PATH}/static/ && \
+    cp -r ./assets/. ${INVENIO_INSTANCE_PATH}/assets/ && \
+    invenio collect --verbose && \
+    invenio webpack buildall
+
+# Runtime Stage
+FROM registry.cern.ch/inveniosoftware/almalinux:1
+
+# Set environment variables
+ENV INVENIO_INSTANCE_PATH=/opt/invenio-instance
+ENV FLASK_APP=invenio_app_rdm:create_app
+ENV FLASK_ENV=production
+
+# Copy static files and built assets from builder stage
+COPY --from=builder ${INVENIO_INSTANCE_PATH}/static ${INVENIO_INSTANCE_PATH}/static
+COPY --from=builder ${INVENIO_INSTANCE_PATH}/assets ${INVENIO_INSTANCE_PATH}/assets
+COPY --from=builder ${INVENIO_INSTANCE_PATH}/templates ${INVENIO_INSTANCE_PATH}/templates
+COPY --from=builder ${INVENIO_INSTANCE_PATH}/app_data ${INVENIO_INSTANCE_PATH}/app_data
+COPY --from=builder ${INVENIO_INSTANCE_PATH}/translations ${INVENIO_INSTANCE_PATH}/translations
+
+# Copy application code
+COPY site ./site
+
+# Copy uWSGI configuration
+COPY ./docker/uwsgi/ ${INVENIO_INSTANCE_PATH}
+
+# Copy main configuration file
+COPY ./invenio.cfg ${INVENIO_INSTANCE_PATH}
+
+# Expose port
+EXPOSE 5000
+
+# Entry point
+ENTRYPOINT ["uwsgi", "--ini", "${INVENIO_INSTANCE_PATH}/uwsgi/uwsgi_rest.ini"]

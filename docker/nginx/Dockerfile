@@ -1,5 +1,6 @@
-FROM nginx
-COPY nginx.conf /etc/nginx/nginx.conf
-COPY conf.d/* /etc/nginx/conf.d/
-COPY test.key /etc/ssl/private/test.key
-COPY test.crt /etc/ssl/certs/test.crt
+FROM nginx:alpine
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Create directories for SSL files
+RUN mkdir -p /etc/ssl/certs /etc/ssl/private
+
+EXPOSE 80 443

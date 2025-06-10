@@ -18,6 +18,54 @@
     background-color: #007681 !important;
 }
 
+/* Custom footer styles moved from theme.scss */
+#rdm-footer-element {
+    margin-top: 2rem;
+    width: 100%;
+    position: relative;
+    bottom: 0;
+    left: 0;
+
+    .footer-top {
+        background-color: #00566c;
+        color: #B1B3B3;
+        padding: 2rem 0;
+        width: 100%;
+    }
+
+    .ui.medium.header {
+        color: #B1B3B3;
+        margin-bottom: 1em;
+    }
+
+    .ui.secondary.menu {
+        background: transparent;
+
+        .item {
+            color: #B1B3B3;
+            padding: 0.5em 1em 0.5em 0;
+
+            &:hover {
+                text-decoration: underline;
+            }
+        }
+    }
+
+    .ui.inverted.footer.segment {
+        background-color: #00313C !important;
+        width: 100%;
+    }
+
+    .ui.primary.inverted.segment {
+        background: #00313C;
+        width: 100%;
+    }
+
+    .right.menu {
+        color: #B1B3B3;
+    }
+}
+
 .footer-top {
   background-color: #00313C !important;
 }
